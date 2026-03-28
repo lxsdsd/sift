@@ -1,5 +1,5 @@
 {
-  "name": "@lxsdsd/openclaw-sift",
+  "name": "sift",
   "version": "0.1.0",
   "description": "Token-efficient capture, extract, and sync plugin for OpenClaw",
   "type": "module",
