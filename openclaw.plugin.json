@@ -1,21 +1,22 @@
 {
   "id": "sift",
-  "providerAuthEnvVars": {
-    "sift": ["NOTION_API_KEY"]
-  },
+  "name": "Sift",
+  "description": "Token-efficient capture, stage, and Notion sync tools for long-form research workflows.",
+  "version": "0.1.0",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "artifactRoot": {
-        "type": "string"
+        "type": "string",
+        "description": "Optional absolute or workspace-relative root for staged artifacts."
       },
       "notion": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": ["string", "object"]
+            "type": "string"
           },
           "apiVersion": {
             "type": "string"
@@ -26,17 +27,17 @@
   },
   "uiHints": {
     "artifactRoot": {
-      "label": "Artifact Root",
-      "help": "Override where staged artifacts are written."
+      "label": "Artifact root",
+      "help": "Optional override for where staged artifacts are written."
     },
-    "notion.apiKey": {
-      "label": "Notion API Key",
-      "help": "Optional config override; falls back to NOTION_API_KEY.",
-      "sensitive": true
+    "apiKey": {
+      "label": "Notion API key",
+      "sensitive": true,
+      "placeholder": "ntn_..."
     },
-    "notion.apiVersion": {
-      "label": "Notion API Version",
-      "help": "Defaults to 2026-03-11 for markdown content APIs."
+    "apiVersion": {
+      "label": "Notion API version",
+      "placeholder": "2025-09-03"
     }
   }
 }

@@ -101,7 +101,7 @@ export default definePluginEntry({
           return toolJson(artifact);
         },
       })) as unknown as AnyAgentTool,
-      { optional: true },
+      { optional: true, name: 'sift_stage_artifact' },
     );
 
     api.registerTool(
@@ -137,7 +137,7 @@ export default definePluginEntry({
           return toolJson(result);
         },
       })) as unknown as AnyAgentTool,
-      { optional: true },
+      { optional: true, name: 'sift_notion_sync' },
     );
   },
 });
