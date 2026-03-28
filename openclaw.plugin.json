@@ -1,0 +1,42 @@
+{
+  "id": "sift",
+  "providerAuthEnvVars": {
+    "sift": ["NOTION_API_KEY"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "artifactRoot": {
+        "type": "string"
+      },
+      "notion": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "type": ["string", "object"]
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "artifactRoot": {
+      "label": "Artifact Root",
+      "help": "Override where staged artifacts are written."
+    },
+    "notion.apiKey": {
+      "label": "Notion API Key",
+      "help": "Optional config override; falls back to NOTION_API_KEY.",
+      "sensitive": true
+    },
+    "notion.apiVersion": {
+      "label": "Notion API Version",
+      "help": "Defaults to 2026-03-11 for markdown content APIs."
+    }
+  }
+}

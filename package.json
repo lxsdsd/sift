@@ -1,0 +1,27 @@
+{
+  "name": "@lxsdsd/openclaw-sift",
+  "version": "0.1.0",
+  "description": "Token-efficient capture, extract, and sync plugin for OpenClaw",
+  "type": "module",
+  "private": true,
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.24"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.41"
+  },
+  "devDependencies": {
+    "openclaw": "file:/home/gaga/openclaw-official-2026.3.24",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
