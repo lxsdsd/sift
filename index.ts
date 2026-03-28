@@ -20,20 +20,25 @@ const StageArtifactSchema = Type.Object({
   metadataJson: Type.Optional(Type.String({ description: 'Optional JSON object encoded as a string.' })),
 });
 
+const MarkdownInputFields = {
+  markdown: Type.Optional(Type.String()),
+  markdownPath: Type.Optional(Type.String()),
+  manifestPath: Type.Optional(Type.String({ description: 'Optional path to a staged manifest.json file.' })),
+};
+
 const NotionSyncSchema = Type.Union([
   Type.Object({
     action: Type.Literal('create_page'),
     parentPageId: Type.String(),
     title: Type.Optional(Type.String()),
-    markdown: Type.Optional(Type.String()),
-    markdownPath: Type.Optional(Type.String()),
+    propertiesJson: Type.Optional(Type.String({ description: 'Optional JSON object for page properties.' })),
+    ...MarkdownInputFields,
   }),
   Type.Object({
     action: Type.Literal('replace_content'),
     pageId: Type.String(),
-    markdown: Type.Optional(Type.String()),
-    markdownPath: Type.Optional(Type.String()),
     allowDeletingContent: Type.Optional(Type.Boolean()),
+    ...MarkdownInputFields,
   }),
   Type.Object({
     action: Type.Literal('update_content'),
@@ -48,14 +53,23 @@ const NotionSyncSchema = Type.Union([
     action: Type.Literal('retrieve_markdown'),
     pageId: Type.String(),
     includeTranscript: Type.Optional(Type.Boolean()),
+    resolveUnknownBlocks: Type.Optional(Type.Boolean()),
+    maxUnknownFetches: Type.Optional(Type.Number()),
+  }),
+  Type.Object({
+    action: Type.Literal('search'),
+    query: Type.String(),
+    resultType: Type.Optional(Type.Union([Type.Literal('page'), Type.Literal('data_source')])),
+    pageSize: Type.Optional(Type.Number()),
+    cursor: Type.Optional(Type.String()),
   }),
 ]);
 
-function parseMetadata(raw?: string): Record<string, unknown> | undefined {
+function parseObjectJson(raw?: string): Record<string, unknown> | undefined {
   if (!raw) return undefined;
   const parsed = JSON.parse(raw);
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error('metadataJson must decode to a JSON object');
+    throw new Error('JSON input must decode to a JSON object');
   }
   return parsed as Record<string, unknown>;
 }
@@ -91,7 +105,7 @@ export default definePluginEntry({
             title: params.title,
             slug: params.slug,
             format: params.format,
-            metadata: parseMetadata(params.metadataJson),
+            metadata: parseObjectJson(params.metadataJson),
             agentDir: ctx.agentDir,
             workspaceDir: ctx.workspaceDir,
             configuredRoot:
@@ -109,7 +123,7 @@ export default definePluginEntry({
         name: 'sift_notion_sync',
         label: 'Sift Notion Sync',
         description:
-          'Create, retrieve, or update Notion markdown content from inline markdown or staged files to avoid replaying long content in chat.',
+          'Create, search, retrieve, or update Notion markdown content from inline markdown or staged files without replaying long content in chat.',
         parameters: NotionSyncSchema,
         async execute(_id: string, params: any) {
           const notionConfig =
@@ -132,7 +146,32 @@ export default definePluginEntry({
                   },
                   notionConfig,
                 )
-              : await runNotionSync(params as any, notionConfig);
+              : params.action === 'create_page'
+                ? await runNotionSync(
+                    {
+                      action: 'create_page',
+                      parentPageId: params.parentPageId,
+                      title: params.title,
+                      properties: parseObjectJson(params.propertiesJson),
+                      markdown: params.markdown,
+                      markdownPath: params.markdownPath,
+                      manifestPath: params.manifestPath,
+                    },
+                    notionConfig,
+                  )
+                : params.action === 'replace_content'
+                  ? await runNotionSync(
+                      {
+                        action: 'replace_content',
+                        pageId: params.pageId,
+                        markdown: params.markdown,
+                        markdownPath: params.markdownPath,
+                        manifestPath: params.manifestPath,
+                        allowDeletingContent: params.allowDeletingContent,
+                      },
+                      notionConfig,
+                    )
+                  : await runNotionSync(params as any, notionConfig);
 
           return toolJson(result);
         },

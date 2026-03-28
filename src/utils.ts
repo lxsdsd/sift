@@ -5,16 +5,21 @@ import path from 'node:path';
 export type SiftPaths = {
   baseDir: string;
   manifestPath: string;
+  sourcePath: string;
+  cleanPath: string;
+  extractedPath: string;
   rawPath: string;
   normalizedPath: string;
 };
 
 export function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48) || 'artifact';
+  return (
+    input
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48) || 'artifact'
+  );
 }
 
 export function timestampId(date = new Date()): string {
@@ -60,11 +65,17 @@ export function resolveArtifactRoot(params: {
 
 export function buildArtifactPaths(root: string, slug: string, stamp: string): SiftPaths {
   const baseDir = path.join(root, `${stamp}-${slug}`);
+  const sourcePath = path.join(baseDir, 'source.txt');
+  const cleanPath = path.join(baseDir, 'clean.md');
   return {
     baseDir,
     manifestPath: path.join(baseDir, 'manifest.json'),
-    rawPath: path.join(baseDir, 'raw.txt'),
-    normalizedPath: path.join(baseDir, 'normalized.md'),
+    sourcePath,
+    cleanPath,
+    extractedPath: path.join(baseDir, 'extracted.json'),
+    // Keep the earlier field names as aliases so existing callers do not break.
+    rawPath: sourcePath,
+    normalizedPath: cleanPath,
   };
 }
 

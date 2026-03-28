@@ -4,6 +4,7 @@ import {
   buildArtifactPaths,
   ensureDir,
   resolveArtifactRoot,
+  safeJsonParse,
   sha256,
   slugify,
   stripHtmlToText,
@@ -28,6 +29,9 @@ export type StagedArtifact = {
   slug: string;
   artifactDir: string;
   manifestPath: string;
+  sourcePath: string;
+  cleanPath: string;
+  extractedPath: string;
   rawPath: string;
   normalizedPath: string;
   sourceType: StageArtifactInput['sourceType'];
@@ -38,19 +42,73 @@ export type StagedArtifact = {
   preview: string;
 };
 
-async function loadSource(input: StageArtifactInput): Promise<{
+type LoadedSource = {
   raw: string;
-  normalized: string;
+  cleanMarkdown: string;
   contentType: string | null;
   detectedFormat: string;
-}> {
+  sourceExt: string;
+  extracted: Record<string, unknown>;
+};
+
+function renderCleanMarkdown(raw: string, detectedFormat: string): string {
+  if (detectedFormat === 'markdown') return raw;
+  if (detectedFormat === 'html') return stripHtmlToText(raw);
+  if (detectedFormat === 'json') {
+    const parsed = safeJsonParse<unknown>(raw, null);
+    if (parsed === null) {
+      return ['```json', raw, '```'].join('\n');
+    }
+    return ['```json', JSON.stringify(parsed, null, 2), '```'].join('\n');
+  }
+  return raw;
+}
+
+function inferSourceExt(detectedFormat: string): string {
+  switch (detectedFormat) {
+    case 'json':
+      return '.json';
+    case 'html':
+      return '.html';
+    case 'markdown':
+      return '.md';
+    default:
+      return '.txt';
+  }
+}
+
+function buildExtractedPayload(input: StageArtifactInput, loaded: LoadedSource) {
+  const charCount = loaded.cleanMarkdown.length;
+  const lineCount = loaded.cleanMarkdown === '' ? 0 : loaded.cleanMarkdown.split(/\r?\n/).length;
+  return {
+    source: {
+      type: input.sourceType,
+      input: input.input,
+      detectedFormat: loaded.detectedFormat,
+      contentType: loaded.contentType,
+    },
+    stats: {
+      charCount,
+      lineCount,
+      rawBytes: Buffer.byteLength(loaded.raw, 'utf8'),
+    },
+    preview: loaded.cleanMarkdown.slice(0, 500),
+    metadata: input.metadata || {},
+    extractedAt: new Date().toISOString(),
+    ...loaded.extracted,
+  };
+}
+
+async function loadSource(input: StageArtifactInput): Promise<LoadedSource> {
   if (input.sourceType === 'text') {
-    const format = input.format && input.format !== 'auto' ? input.format : 'markdown';
+    const detectedFormat = input.format && input.format !== 'auto' ? input.format : 'markdown';
     return {
       raw: input.input,
-      normalized: input.input,
+      cleanMarkdown: renderCleanMarkdown(input.input, detectedFormat),
       contentType: 'text/plain',
-      detectedFormat: format,
+      detectedFormat,
+      sourceExt: inferSourceExt(detectedFormat),
+      extracted: {},
     };
   }
 
@@ -68,12 +126,18 @@ async function loadSource(input: StageArtifactInput): Promise<{
             : ext === '.html' || ext === '.htm'
               ? 'html'
               : 'text';
-    const normalized = detectedFormat === 'html' ? stripHtmlToText(raw) : raw;
     return {
       raw,
-      normalized,
+      cleanMarkdown: renderCleanMarkdown(raw, detectedFormat),
       contentType: ext === '.json' ? 'application/json' : 'text/plain',
       detectedFormat,
+      sourceExt: ext || inferSourceExt(detectedFormat),
+      extracted: {
+        file: {
+          path: resolved,
+          ext: ext || null,
+        },
+      },
     };
   }
 
@@ -96,12 +160,18 @@ async function loadSource(input: StageArtifactInput): Promise<{
         : contentType?.includes('text/html')
           ? 'html'
           : 'text';
-  const normalized = detectedFormat === 'html' ? stripHtmlToText(raw) : raw;
   return {
     raw,
-    normalized,
+    cleanMarkdown: renderCleanMarkdown(raw, detectedFormat),
     contentType,
     detectedFormat,
+    sourceExt: inferSourceExt(detectedFormat),
+    extracted: {
+      fetch: {
+        url: input.input,
+        contentType,
+      },
+    },
   };
 }
 
@@ -118,29 +188,34 @@ export async function stageArtifact(input: StageArtifactInput): Promise<StagedAr
   await ensureDir(paths.baseDir);
 
   const loaded = await loadSource(input);
-  const rawExt = loaded.detectedFormat === 'json' ? '.json' : loaded.detectedFormat === 'html' ? '.html' : '.txt';
-  const normalizedExt = loaded.detectedFormat === 'json' ? '.json' : '.md';
-  const rawPath = paths.rawPath.replace(/\.txt$/, rawExt);
-  const normalizedPath = paths.normalizedPath.replace(/\.md$/, normalizedExt);
+  const sourcePath = paths.sourcePath.replace(/\.txt$/, loaded.sourceExt);
+  const cleanPath = paths.cleanPath;
+  const extractedPath = paths.extractedPath;
+  const rawSha = sha256(loaded.raw);
 
-  await writeUtf8(rawPath, loaded.raw);
-  await writeUtf8(normalizedPath, loaded.normalized);
+  await writeUtf8(sourcePath, loaded.raw);
+  await writeUtf8(cleanPath, loaded.cleanMarkdown);
 
   const summary: StagedArtifact = {
     title,
     slug,
     artifactDir: paths.baseDir,
     manifestPath: paths.manifestPath,
-    rawPath,
-    normalizedPath,
+    sourcePath,
+    cleanPath,
+    extractedPath,
+    rawPath: sourcePath,
+    normalizedPath: cleanPath,
     sourceType: input.sourceType,
     detectedFormat: loaded.detectedFormat,
     contentType: loaded.contentType,
     bytes: Buffer.byteLength(loaded.raw, 'utf8'),
-    sha256: sha256(loaded.raw),
-    preview: loaded.normalized.slice(0, 500),
+    sha256: rawSha,
+    preview: loaded.cleanMarkdown.slice(0, 500),
   };
 
+  const extracted = buildExtractedPayload(input, loaded);
+  await writeUtf8(extractedPath, JSON.stringify(extracted, null, 2));
   await writeUtf8(
     paths.manifestPath,
     JSON.stringify(
