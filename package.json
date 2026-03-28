@@ -1,9 +1,33 @@
 {
-  "name": "sift",
-  "version": "0.1.0",
+  "name": "@lxsdsd/openclaw-sift",
+  "version": "0.1.1",
   "description": "Token-efficient capture, extract, and sync plugin for OpenClaw",
   "type": "module",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lxsdsd/sift.git"
+  },
+  "homepage": "https://github.com/lxsdsd/sift#readme",
+  "bugs": {
+    "url": "https://github.com/lxsdsd/sift/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "notion",
+    "markdown",
+    "artifacts"
+  ],
+  "files": [
+    "index.ts",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "openclaw.plugin.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "openclaw": {
     "extensions": [
       "./index.ts"
@@ -11,7 +35,8 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release:check": "node ./scripts/release-check.mjs"
   },
   "peerDependencies": {
     "openclaw": ">=2026.3.24"
@@ -20,7 +45,7 @@
     "@sinclair/typebox": "^0.34.41"
   },
   "devDependencies": {
-    "openclaw": "file:/home/gaga/openclaw-official-2026.3.24",
+    "openclaw": "^2026.3.24",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

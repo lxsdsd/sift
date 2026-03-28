@@ -37,13 +37,27 @@ Sift is a plugin, not a skill.
 - A skill can tell an agent when to use Sift.
 - Sift can therefore be reused across many skills, projects, and agents.
 
+## Repository + versioning
+
+- dedicated repo: `https://github.com/lxsdsd/sift`
+- package name: `@lxsdsd/openclaw-sift`
+- plugin id: `sift`
+- versioning rule: semantic versioning, with `package.json` and `openclaw.plugin.json` kept in lockstep
+- release guard: `npm run release:check`
+
 ## Local development
 
 ```bash
 npm install
 npm test
 npm run check
+npm run release:check
 ```
+
+## Continuous integration
+
+GitHub Actions runs `npm ci`, `npm run check`, `npm test`, and `npm run release:check`
+on every push and pull request so the plugin can evolve without drifting out of sync.
 
 ## Next steps
 

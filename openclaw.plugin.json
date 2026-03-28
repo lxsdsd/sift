@@ -2,7 +2,7 @@
   "id": "sift",
   "name": "Sift",
   "description": "Token-efficient capture, stage, and Notion sync tools for long-form research workflows.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
